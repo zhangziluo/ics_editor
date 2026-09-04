@@ -7,3 +7,7 @@ node_modules/
 # 系统 / 日志
 .DS_Store
 *.log
+
+# Wrangler（Cloudflare Workers）本地缓存
+.wrangler/
+
