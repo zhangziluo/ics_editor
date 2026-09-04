@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICS 新手指南 · 白话看懂 .ics 与导入</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:#eef0f6;color:#333;line-height:1.75}
+header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 14px rgba(0,0,0,.18)}
+.header-inner{max-width:900px;margin:0 auto;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;font-size:16px}
+.header-links{display:flex;gap:8px;flex-wrap:wrap}
+.hl{color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.18);transition:all .2s}
+.hl:hover{background:rgba(255,255,255,.38);transform:translateY(-1px)}
+.container{max-width:900px;margin:0 auto;padding:22px 16px 40px}
+.hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border-radius:20px;padding:32px 28px;margin-bottom:22px;box-shadow:0 10px 28px rgba(102,126,234,.35)}
+.hero h1{font-size:23px;line-height:1.45;margin-bottom:8px}
+.hero p{opacity:.93;font-size:14.5px;margin-bottom:16px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips a{background:rgba(255,255,255,.18);color:#fff;text-decoration:none;padding:5px 13px;border-radius:999px;font-size:12.5px;font-weight:600;transition:all .2s}
+.chips a:hover{background:rgba(255,255,255,.36)}
+.card{background:#fff;border-radius:18px;padding:24px 26px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.card h2{font-size:19px;color:#2d3748;margin-bottom:13px;line-height:1.45}
+.card>p{font-size:14.5px;color:#4a5568;margin-bottom:10px}
+code{background:#eef2ff;color:#5a67d8;padding:1px 6px;border-radius:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em}
+.sub{margin:18px 0 8px;padding:15px 16px;border-radius:0 14px 14px 0;background:#f7fafc;border-left:4px solid #667eea}
+.sub h3{font-size:15.5px;color:#4c51bf;margin-bottom:8px}
+.sub>p{font-size:14.5px;color:#4a5568;margin-bottom:8px}
+ul.tick{list-style:none;margin:6px 0 10px}
+ul.tick li{padding-left:27px;position:relative;font-size:14.5px;color:#4a5568;margin-bottom:7px}
+ul.tick li::before{content:"✅";position:absolute;left:0;top:0}
+pre.code{background:#0f172a;color:#e2e8f0;padding:15px 17px;border-radius:12px;font-size:12.8px;line-height:1.6;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:10px 0 12px}
+.tbl-wrap{overflow-x:auto;margin:10px 0 12px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:500px}
+th{background:#667eea;color:#fff;padding:10px 13px;text-align:left;font-weight:600}
+td{padding:10px 13px;border-bottom:1px solid #e2e8f0;vertical-align:top;color:#4a5568}
+tbody tr:nth-child(even) td{background:#f7fafc}
+td:first-child{font-weight:600;color:#2d3748}
+.tip{background:#fff7ed;border:1px solid #fed7aa;border-left:4px solid #ed8936;border-radius:10px;padding:11px 14px;font-size:14px;color:#9a5b1f;margin:10px 0 12px;line-height:1.6}
+.plats{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:6px}
+.plat{background:#f7fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;transition:all .2s}
+.plat:hover{border-color:#c3d0fd;transform:translateY(-2px);box-shadow:0 6px 14px rgba(102,126,234,.12)}
+.plat h4{font-size:14.5px;font-weight:700;color:#5a67d8;margin-bottom:8px}
+.plat ol{margin-left:20px}
+.plat li{font-size:13.5px;color:#4a5568;margin-bottom:5px;line-height:1.6}
+.scen{display:flex;gap:14px;align-items:flex-start;padding:13px 4px;border-bottom:1px dashed #e2e8f0}
+.scen:last-child{border-bottom:none}
+.sc-ico{width:44px;height:44px;flex-shrink:0;background:#eef2ff;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.scen b{color:#2d3748;font-size:14.5px}
+.scen p{font-size:14px;color:#4a5568;margin-top:2px}
+details.faq{background:#f7fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden}
+details.faq summary{cursor:pointer;padding:14px 44px 14px 16px;font-weight:600;font-size:14.5px;color:#2d3748;list-style:none;position:relative;transition:background .2s}
+details.faq summary:hover{background:#eef2ff}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::after{content:"＋";position:absolute;right:16px;top:50%;transform:translateY(-50%);color:#667eea;font-weight:700}
+details.faq[open] summary::after{content:"－"}
+details.faq .ans{padding:0 16px 15px;font-size:14px;color:#4a5568;line-height:1.7}
+.endbox{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:20px;color:#fff;text-align:center;padding:32px 22px;margin-top:24px;box-shadow:0 10px 28px rgba(102,126,234,.32)}
+.endbox h2{font-size:18.5px;margin-bottom:8px}
+.endbox p{opacity:.92;font-size:14px}
+.cta-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.btn{display:inline-block;text-decoration:none;font-weight:700;font-size:14.5px;padding:11px 24px;border-radius:999px;transition:all .2s}
+.btn-light{background:#fff;color:#5a67d8}
+.btn-light:hover{transform:translateY(-2px);box-shadow:0 8px 16px rgba(0,0,0,.18)}
+.btn-ghost{background:rgba(255,255,255,.16);color:#fff}
+.btn-ghost:hover{background:rgba(255,255,255,.32)}
+footer{text-align:center;color:#a0aec0;font-size:12.5px;padding:0 16px 30px}
+@media (max-width:560px){.hero h1{font-size:19px}.hero{padding:24px 18px}.card{padding:19px 17px}.container{padding:16px 10px 34px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">📖 ICS 新手指南</div>
+    <div class="header-links">
+      <a class="hl" href="index.html">🏠 返回模板导航</a>
+      <a class="hl" href="ics_editor.html">🚀 打开编辑器</a>
+    </div>
+  </div>
+</header>
+<main class="container">
+<section class="hero">
+  <h1>新手入门：ICS 日历文件白话指南</h1>
+  <p>从「它是什么」讲到「怎么导入」，覆盖 iPhone、Android、Mac、Windows 与 Google 日历，看完就能动手。</p>
+  <div class="chips">
+    <a href="#what">🗓️ 什么是 ICS</a>
+    <a href="#why">💡 为什么好用</a>
+    <a href="#quickstart">🛠️ 30 秒上手</a>
+    <a href="#scenes">🎯 典型场景</a>
+    <a href="#faq">❓ 常见问题</a>
+  </div>
+</section>
+<section class="card" id="what">
+  <h2>🗓️ 什么是 ICS 文件？（大白话版）</h2>
+  <p>ICS 就是一个「装日程的通用文件」，后缀名是 <code>.ics</code>。</p>
+  <p>它不像 Word、Excel 那样是某个公司私有的格式，而是由互联网工程组（IETF）制定的开放标准（叫 iCalendar，RFC 5545）。因为是开放标准，<b>Google 日历、苹果日历、微软 Outlook、Mozilla Thunderbird……几乎所有日历软件都认它</b>。</p>
+  <p>你可以把它理解为「日程界的普通话」——不管你用哪个日历 App，ICS 文件拿过去都能听懂。</p>
+</section>
+<section class="card" id="why">
+  <h2>💡 为什么 ICS 这么好用？</h2>
+
+  <div class="sub">
+    <h3>1. 一次生成，处处可用</h3>
+    <p>你在我们的工具里生成了一个 <code>.ics</code> 文件，可以：</p>
+    <ul class="tick">
+      <li>双击导入 Windows 上的 Outlook 或 Windows 日历</li>
+      <li>双击导入 Mac 上的苹果日历</li>
+      <li>通过邮件附件发送到 iPhone，点击就能「添加到日历」</li>
+      <li>通过 Gmail 附件发送到 Android 手机，点击由 Google 日历处理</li>
+      <li>上传到 Google 日历网页版（设置 → 导入和导出 → 导入）</li>
+      <li>上传到 Outlook.com（添加日历 → 从文件上传）</li>
+    </ul>
+    <p><b>同一个文件，全平台通用，绝不锁死在某一家。</b></p>
+  </div>
+
+  <div class="sub">
+    <h3>2. 纯文本，透明、安全、轻量</h3>
+    <p>ICS 文件本质是纯 UTF-8 文本，用记事本就能打开看内容：</p>
+<pre class="code">BEGIN:VCALENDAR
+BEGIN:VEVENT
+SUMMARY:F1 2026 巴林大奖赛
+DTSTART:2026-03-01T16:00:00Z
+DTEND:2026-03-01T18:00:00Z
+BEGIN:VALARM
+TRIGGER:-PT15M
+END:VALARM
+END:VEVENT
+END:VCALENDAR</pre>
+    <p>因为是纯文本，它自己不能执行代码，安全风险极低。你完全可以放心打开陌生人发来的 ICS 文件（当然，里面的链接别乱点，跟邮件一个道理）。</p>
+  </div>
+
+  <div class="sub">
+    <h3>3. 有两种用法：导入 和 订阅</h3>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th>用法</th><th>适合场景</th><th>行为</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>导入 .ics 文件</td><td>一次性日程（某场比赛、某个会议）</td><td>把事件复制到你的日历，源文件更新了你的日历不会跟着变</td></tr>
+        <tr><td>订阅 .ics 链接</td><td>长期更新的日程（赛季赛程、课程表、宗教节日）</td><td>日历 App 定期拉取，源更新了你的日历自动跟着变</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="tip">💡 简单记：一次性事件用文件，长期日程用订阅链接。</div>
+    <p>以后我们的工具会支持生成订阅链接（webcal://），那时候赛事日程、课程表、节日提醒就能自动更新，不用每年重新导入。</p>
+  </div>
+
+  <div class="sub">
+    <h3>4. 默认带提醒（我们的独门绝技）</h3>
+    <p>普通厂商日历对节日、订阅日历默认不提醒——因为客户端会忽略订阅源的 VALARM，且厂商出于防打扰考虑默认关闭。</p>
+    <p>我们的工具反其道而行：生成的每个事件都自动带上 <code>VALARM</code> 提醒（默认提前 15 分钟），并且会教你如何在 iOS / Android / Google 日历上开启提醒，确保到点手机真的会响。</p>
+  </div>
+</section>
+<section class="card" id="quickstart">
+  <h2>🛠️ 30 秒上手：拿到 .ics 文件后怎么用？</h2>
+  <div class="plats">
+    <div class="plat">
+      <h4>📱 iPhone / iPad</h4>
+      <ol>
+        <li>在邮件或「文件」App 里点 <code>.ics</code> 附件</li>
+        <li>点「添加到日历」</li>
+        <li>完成 ✅</li>
+      </ol>
+    </div>
+    <div class="plat">
+      <h4>🤖 Android</h4>
+      <ol>
+        <li>在 Gmail 或文件管理器里点 <code>.ics</code> 文件</li>
+        <li>选择 Google 日历打开</li>
+        <li>点保存 ✅</li>
+      </ol>
+    </div>
+    <div class="plat">
+      <h4>🍎 Mac</h4>
+      <ol>
+        <li>双击 <code>.ics</code> 文件</li>
+        <li>苹果日历弹出预览，选择要加入的日历</li>
+        <li>点「好」✅</li>
+      </ol>
+    </div>
+    <div class="plat">
+      <h4>🪟 Windows</h4>
+      <ol>
+        <li>双击 <code>.ics</code> 文件（会用 Outlook 或 Windows 日历打开）</li>
+        <li>点「保存并关闭」✅<br><span style="font-size:12px;color:#8a94a6">（如果没反应，右键文件 → 打开方式 → 选 Outlook 或日历）</span></li>
+      </ol>
+    </div>
+    <div class="plat">
+      <h4>🌐 Google 日历（网页版）</h4>
+      <ol>
+        <li>打开 calendar.google.com</li>
+        <li>点齿轮图标 → 设置 → 导入和导出</li>
+        <li>选文件 → 选目标日历 → 导入 ✅</li>
+      </ol>
+    </div>
+  </div>
+</section>
+<section class="card" id="scenes">
+  <h2>🎯 典型使用场景</h2>
+  <div class="scen"><div class="sc-ico">🏎️</div><div><b>体育迷</b><p>截图 F1 / 英超 / 世界杯赛程 → 生成 ICS → 导入手机，每场比赛前 15 分钟提醒。</p></div></div>
+  <div class="scen"><div class="sc-ico">📚</div><div><b>学生 / 家长</b><p>截图课程表 → 生成 ICS → 导入日历，开学季不再记错教室。</p></div></div>
+  <div class="scen"><div class="sc-ico">🕌</div><div><b>宗教信徒</b><p>开斋节、古尔邦节、主日聚会 → 生成带提醒的 ICS → 宗教义务不再错过。</p></div></div>
+  <div class="scen"><div class="sc-ico">📖</div><div><b>读书人</b><p>手打「每天 20:00-21:00 读《史记》」→ 生成 ICS → 导入日历，养成习惯。</p></div></div>
+  <div class="scen"><div class="sc-ico">💼</div><div><b>职场人</b><p>把会议通知、项目节点 → 批量生成 ICS → 一次导入，全程提醒。</p></div></div>
+</section>
+<section class="card" id="faq">
+  <h2>❓ 常见问题</h2>
+  <details class="faq">
+    <summary>Q：ICS 文件安全吗？</summary>
+    <div class="ans">A：ICS 是纯文本格式，本身不能执行代码，安全风险很低。但跟邮件一样，陌生 ICS 里的链接别乱点。</div>
+  </details>
+  <details class="faq">
+    <summary>Q：导入后想删掉怎么办？</summary>
+    <div class="ans">A：在你日历 App 里找到导入的事件，直接删除即可。建议在导入前新建一个独立日历（比如叫「导入的赛程」），这样以后想清空时一键删除整个日历，不会影响原有日程。</div>
+  </details>
+  <details class="faq">
+    <summary>Q：为什么我导入了 ICS，但没收到提醒？</summary>
+    <div class="ans">A：部分客户端（尤其是 iOS 的订阅日历）会忽略 ICS 里的 VALARM 提醒。解决方法：去日历设置里手动开启该日历的默认提醒（iPhone：设置 → 日历 → 默认提醒时间）。我们的工具导出时会明确提示你这一步。</div>
+  </details>
+  <details class="faq">
+    <summary>Q：文件导入和链接订阅有什么区别？</summary>
+    <div class="ans">A：文件是一次性快照，源更新了你的日历不会跟着变；链接是订阅，源更新会自动同步。长期日程（如整个赛季、全年课程表）建议用订阅链接。</div>
+  </details>
+</section>
+<section class="endbox">
+  <h2>💡 ICS 不是规划工具，是触发工具。</h2>
+  <p>让截图和文字，15 秒变成手机日历里响起的提醒。</p>
+  <div class="cta-row">
+    <a class="btn btn-light" href="ics_editor.html">🚀 打开编辑器试试</a>
+    <a class="btn btn-ghost" href="index.html">🏠 返回模板导航</a>
+  </div>
+</section>
+</main>
+<footer>📅 ICS 日历套件 · 新手指南 · 纯前端 · 数据不出本地</footer>
+</body>
+</html>

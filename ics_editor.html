@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICS 日历编辑器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#333;line-height:1.6}
+header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:16px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.page-nav{display:flex;gap:8px;margin-top:12px}
+.page-nav button{flex:1;padding:8px 12px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.25);color:white}
+.page-nav button.active{background:white;color:#667eea}
+.page-nav button:hover:not(.active){background:rgba(255,255,255,.4)}
+.hub-link{flex-shrink:0;align-self:center;background:rgba(255,255,255,.22);color:#fff;text-decoration:none;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;transition:all .2s;white-space:nowrap}
+.hub-link:hover{background:rgba(255,255,255,.4)}
+.container{max-width:720px;margin:0 auto;padding:16px}
+.page{display:none}.page.active{display:block}
+
+/* 工具栏 */
+.toolbar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar button{padding:10px 16px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-primary{background:#667eea;color:white}.btn-primary:hover{background:#5a67d8}
+.btn-success{background:#48bb78;color:white}.btn-success:hover{background:#38a169}
+.btn-warning{background:#ed8936;color:white}.btn-warning:hover{background:#dd6b20}
+.btn-danger{background:#f56565;color:white}.btn-danger:hover{background:#e53e3e}
+
+/* 卡片 */
+.card{background:white;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card h3{margin-bottom:12px;font-size:16px;color:#555}
+
+/* 表单 */
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#666;margin-bottom:4px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:15px;transition:.2s}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.15)}
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+
+/* 日历 */
+.calendar-wrap{background:#f7fafc;border-radius:10px;padding:12px}
+.calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.calendar-header button{width:32px;height:32px;border:none;background:#667eea;color:white;border-radius:50%;cursor:pointer;font-size:16px}
+.calendar-header span{font-weight:600;font-size:15px}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.calendar-grid .day-name{font-size:11px;color:#999;padding:4px 0;font-weight:600}
+.calendar-grid .day-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:6px;cursor:pointer;transition:.15s}
+.calendar-grid .day-cell:hover:not(.empty){background:#e9d8fd}
+.calendar-grid .day-cell.empty{visibility:hidden}
+.calendar-grid .day-cell.selected{background:#667eea;color:white;font-weight:700}
+.calendar-grid .day-cell.today{border:2px solid #667eea}
+.calendar-grid .day-cell.other-month{color:#ccc}
+
+/* 时钟 */
+.clock-wrap{display:flex;flex-direction:column;align-items:center;padding:12px}
+.clock-mode-switch{display:flex;gap:8px;margin-bottom:12px}
+.clock-mode-switch button{padding:6px 14px;border:1px solid #667eea;background:white;color:#667eea;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.clock-mode-switch button.active{background:#667eea;color:white}
+.clock-display{font-size:28px;font-weight:700;color:#333;margin-bottom:12px;font-variant-numeric:tabular-nums}
+.clock-svg{width:180px;height:180px}
+.clock-face{fill:#f7fafc;stroke:#667eea;stroke-width:3}
+.clock-tick{stroke:#667eea;stroke-width:2}
+.clock-tick-major{stroke:#667eea;stroke-width:3}
+.clock-hand-hour{stroke:#333;stroke-width:4;stroke-linecap:round}
+.clock-hand-minute{stroke:#667eea;stroke-width:3;stroke-linecap:round}
+.clock-center{fill:#667eea}
+.clock-label{font-size:9px;fill:#666;font-weight:600;text-anchor:middle}
+
+/* 重复规则 */
+.rrule-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rrule-row label{font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.rrule-row input[type="number"]{width:60px;padding:6px}
+.weekday-check{display:flex;gap:4px;flex-wrap:wrap}
+.weekday-check label{width:36px;height:36px;border:2px solid #ddd;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;user-select:none}
+.weekday-check input{display:none}
+.weekday-check input:checked+span{background:#667eea;color:white;border-radius:50%;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.weekday-check label:has(input:checked){border-color:#667eea}
+
+/* 事件列表 */
+.event-item{background:white;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.event-item .info{flex:1}
+.event-item .title{font-weight:700;font-size:15px;margin-bottom:2px}
+.event-item .meta{font-size:12px;color:#888}
+.event-item .actions{display:flex;gap:6px}
+.event-item .actions button{padding:6px 10px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
+.btn-edit{background:#e9d8fd;color:#6b46c1}.btn-edit:hover{background:#d6bcfa}
+.btn-del{background:#fed7d7;color:#c53030}.btn-del:hover{background:#fbb6b6}
+
+/* 识别模式切换 */
+.mode-switch{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.mode-switch button{padding:7px 14px;border:1.5px solid #667eea;background:white;color:#667eea;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.mode-switch button:hover{background:#eef2ff}
+.mode-switch button.active{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-color:transparent;box-shadow:0 3px 8px rgba(102,126,234,.3)}
+
+/* 粘贴面板 */
+.paste-area{width:100%;min-height:80px;padding:10px;border:2px dashed #cbd5e0;border-radius:8px;font-size:14px;resize:vertical;font-family:inherit}
+.paste-area:focus{border-color:#667eea;outline:none}
+.btn-parse{width:100%;padding:10px;margin-top:8px;background:#667eea;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-parse:hover{background:#5a67d8}
+.camera-row{display:flex;gap:8px;margin-top:8px}
+.camera-row button{flex:1;padding:8px;border:1px solid #667eea;background:white;color:#667eea;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.camera-row button:hover{background:#667eea;color:white}
+#camera-preview{width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-top:8px;display:none}
+#camera-canvas{display:none}
+
+/* 确认卡片 */
+.confirm-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.confirm-modal{background:white;border-radius:16px;padding:24px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto}
+.confirm-modal h3{margin-bottom:16px;color:#333}
+.confirm-item{background:#f7fafc;border-radius:10px;padding:12px;margin-bottom:10px;border-left:4px solid #667eea}
+.confirm-item .auto-badge{display:inline-block;background:#c6f6d5;color:#22543d;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:600}
+.confirm-item .title-input{width:100%;padding:8px;border:2px solid #f56565;border-radius:6px;font-size:15px;font-weight:600;margin-top:6px}
+.confirm-item .title-input:focus{outline:none;border-color:#667eea}
+.confirm-item .detail{font-size:12px;color:#666;margin-top:4px}
+.confirm-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.confirm-actions button{padding:10px 16px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-confirm-all{background:#48bb78;color:white;flex:1}
+.btn-cancel{background:#cbd5e0;color:#333}
+
+/* 模板横幅 */
+.template-banner{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:14px 18px;border-radius:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.template-banner .banner-text{font-size:14px}
+.template-banner .banner-actions{display:flex;gap:8px}
+.template-banner button{padding:6px 14px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+
+/* 导出引导 */
+.export-guide{background:#c6f6d5;border:1px solid #68d391;color:#22543d;padding:14px;border-radius:10px;margin-top:12px;font-size:14px}
+.export-guide a{color:#2f855a;font-weight:700;text-decoration:underline}
+
+/* 帮助页 */
+.help-section{margin-bottom:24px}
+.help-section h2{font-size:20px;margin-bottom:12px;color:#333}
+.help-section h3{font-size:16px;margin:16px 0 8px;color:#555}
+.help-section p,.help-section li{font-size:14px;color:#666;margin-bottom:6px}
+.help-section ul, .help-section ol{margin-left:20px}
+.help-section li{margin-bottom:4px}
+.platform-card{background:#f7fafc;border-radius:10px;padding:14px;margin-bottom:12px;border-left:4px solid #667eea}
+.platform-card h4{font-size:15px;margin-bottom:6px}
+.faq-item{margin-bottom:12px}
+.faq-item .question{font-weight:700;font-size:14px;color:#333}
+.faq-item .answer{font-size:13px;color:#666;margin-top:2px}
+
+/* 文件输入 */
+.file-input{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+    <div style="min-width:0;">
+      <div style="font-size:18px;font-weight:700;">📅 ICS 日历编辑器</div>
+      <div style="font-size:12px;opacity:.8;">粘贴文字 · AI 截图识别 · 一键导出</div>
+    </div>
+    <a class="hub-link" href="index.html" title="返回模板导航首页">🏠 模板导航</a>
+  </div>
+  <nav class="page-nav">
+    <button onclick="switchPage('editor')" id="nav-editor" class="active">📅 编辑器</button>
+    <button onclick="switchPage('help')" id="nav-help">📖 使用指南</button>
+  </nav>
+</header>
+
+<div class="container">
+
+  <!-- ==================== 编辑器页 ==================== -->
+  <div id="page-editor" class="page active">
+
+    <!-- 模板横幅（动态显示） -->
+    <div id="template-banner" class="template-banner" style="display:none;">
+      <div class="banner-text">📋 <strong id="banner-tpl-name"></strong> — 已套用 <span id="banner-tpl-count"></span> 个预设事件</div>
+      <div class="banner-actions">
+        <button onclick="scrollToEvents()" style="background:white;color:#667eea;">👀 查看事件</button>
+        <button onclick="dismissBanner()" style="background:rgba(255,255,255,.3);color:white;">✕ 关闭</button>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button class="btn-primary" onclick="openForm()">+ 新建事件</button>
+      <button class="btn-success" onclick="exportICS()">⬇️ 导出 ICS</button>
+      <button class="btn-warning" onclick="document.getElementById('import-file').click()">📂 导入 ICS</button>
+      <input type="file" id="import-file" class="file-input" accept=".ics" onchange="importICS(event)">
+    </div>
+
+    <!-- 智能粘贴面板 -->
+    <div class="card">
+      <h3>✨ 智能粘贴 / AI 截图识别</h3>
+      <div class="mode-switch" id="mode-switch">
+        <button data-mode="general" class="active" onclick="setRecMode('general',this)">📅 通用</button>
+        <button data-mode="sports" onclick="setRecMode('sports',this)">🏀 体育赛事</button>
+        <button data-mode="course" onclick="setRecMode('course',this)">🎓 课程表</button>
+      </div>
+      <textarea class="paste-area" id="paste-input" placeholder="粘贴包含时间和事件的文字，例如：&#10;下周一上午8点到9点半，高等数学，地点工科楼A201，张老师&#10;周三 10:00-11:40 大学英语 文科楼B栋&#10;10月25日 19:35 湖人 vs 勇士"></textarea>
+      <button class="btn-parse" onclick="parsePastedText()">✨ 智能识别填入</button>
+      <div class="camera-row">
+        <button onclick="startCamera()">📷 拍照</button>
+        <button onclick="document.getElementById('ocr-file').click()">🖼️ 选图片识别</button>
+        <input type="file" id="ocr-file" class="file-input" accept="image/*" onchange="ocrFromFile(event)">
+      </div>
+      <video id="camera-preview" autoplay playsinline></video>
+      <canvas id="camera-canvas"></canvas>
+      <div id="paste-status" style="font-size:12px;margin-top:6px;"></div>
+    </div>
+
+    <!-- 编辑表单 -->
+    <div class="card" id="edit-form" style="display:none;">
+      <h3 id="form-title-text">新建事件</h3>
+      <div class="form-group">
+        <label>事件标题 *</label>
+        <input type="text" id="ev-title" placeholder="如：高等数学">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>日期</label>
+          <div class="calendar-wrap">
+            <div class="calendar-header">
+              <button onclick="calPrevMonth()">‹</button>
+              <span id="cal-title"></span>
+              <button onclick="calNextMonth()">›</button>
+            </div>
+            <div class="calendar-grid" id="cal-grid"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>时间</label>
+          <div class="clock-wrap">
+            <div class="clock-mode-switch">
+              <button id="clk-mode-hour" class="active" onclick="clkSetMode('hour')">时</button>
+              <button id="clk-mode-min" onclick="clkSetMode('min')">分</button>
+              <span style="color:#cbd5e0;align-self:center;">|</span>
+              <button id="clk-ampm-am" class="active" onclick="clkSetAmPm(false)">上午</button>
+              <button id="clk-ampm-pm" onclick="clkSetAmPm(true)">下午</button>
+            </div>
+            <div class="clock-display" id="clk-display">08:00</div>
+            <svg class="clock-svg" id="clk-svg" viewBox="0 0 200 200" onclick="clkClick(event)">
+              <circle class="clock-face" cx="100" cy="100" r="90"/>
+              <g id="clk-ticks"></g>
+              <line class="clock-hand-hour" id="clk-hand-hour" x1="100" y1="100" x2="100" y2="55"/>
+              <line class="clock-hand-minute" id="clk-hand-minute" x1="100" y1="100" x2="100" y2="40"/>
+              <circle class="clock-center" cx="100" cy="100" r="5"/>
+              <g id="clk-labels"></g>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>结束时间</label>
+          <input type="time" id="ev-end-time" value="09:40">
+        </div>
+        <div class="form-group">
+          <label>提醒</label>
+          <select id="ev-reminder">
+            <option value="PT0M">不提醒</option>
+            <option value="PT5M">提前 5 分钟</option>
+            <option value="PT10M">提前 10 分钟</option>
+            <option value="PT15M" selected>提前 15 分钟</option>
+            <option value="PT30M">提前 30 分钟</option>
+            <option value="PT1H">提前 1 小时</option>
+            <option value="P1D">提前 1 天</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>地点</label>
+        <input type="text" id="ev-location" placeholder="如：工科楼A201">
+      </div>
+      <div class="form-group">
+        <label>描述/备注</label>
+        <textarea id="ev-desc" rows="2" placeholder="如：带教材第3章"></textarea>
+      </div>
+      <div class="form-group">
+        <label>重复规则</label>
+        <div class="rrule-row">
+          <label>频率：<select id="rrule-freq" onchange="updateRRule()">
+            <option value="NONE">不重复</option>
+            <option value="DAILY">每天</option>
+            <option value="WEEKLY" selected>每周</option>
+            <option value="MONTHLY">每月</option>
+          </select></label>
+          <label>间隔：<input type="number" id="rrule-interval" value="1" min="1" max="52" onchange="updateRRule()"> 周</label>
+          <label>直到：<input type="date" id="rrule-until" onchange="updateRRule()"></label>
+        </div>
+        <div class="weekday-check" id="weekday-check" style="margin-top:8px;">
+          <label><input type="checkbox" value="MO" onchange="updateRRule()"><span>一</span></label>
+          <label><input type="checkbox" value="TU" onchange="updateRRule()"><span>二</span></label>
+          <label><input type="checkbox" value="WE" onchange="updateRRule()"><span>三</span></label>
+          <label><input type="checkbox" value="TH" onchange="updateRRule()"><span>四</span></label>
+          <label><input type="checkbox" value="FR" onchange="updateRRule()"><span>五</span></label>
+          <label><input type="checkbox" value="SA" onchange="updateRRule()"><span>六</span></label>
+          <label><input type="checkbox" value="SU" onchange="updateRRule()"><span>日</span></label>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn-primary" onclick="saveEvent()">💾 保存</button>
+        <button class="btn-danger" onclick="cancelEdit()">取消</button>
+      </div>
+    </div>
+
+    <!-- 事件列表 -->
+    <div id="event-list"></div>
+
+    <!-- 导出引导 -->
+    <div id="export-guide" style="display:none;"></div>
+  </div>
+
+  <!-- ==================== 使用指南页 ==================== -->
+  <div id="page-help" class="page">
+    <div class="card">
+      <div class="help-section">
+        <h2>🧐 什么是 .ics 文件？</h2>
+        <p>.ics 就像日历界的 <strong>PDF</strong>——不管你用苹果、安卓还是电脑，只要导入这个文件，就能把日程/课表加进自带的日历 App 里。它是全球通用的日历格式标准。</p>
+      </div>
+
+      <div class="help-section">
+        <h2>📱 各平台导入教程</h2>
+        <div class="platform-card">
+          <h4>📱 iPhone / iPad</h4>
+          <ol>
+            <li>把 .ics 文件保存到"文件"App（微信/QQ 里长按文件 → 存储到文件）</li>
+            <li>打开"文件"App → 找到 .ics 文件 → 点击</li>
+            <li>点「添加到日历」→ 选择添加到哪个日历 → 完成</li>
+            <li>打开"日历"App 就能看到</li>
+          </ol>
+        </div>
+        <div class="platform-card">
+          <h4>🤖 Android</h4>
+          <ol>
+            <li>下载/保存 .ics 文件到手机</li>
+            <li>打开 Google 日历 App → 左上角 ☰ → 设置 → 导入</li>
+            <li>选择 .ics 文件 → 选择要添加的日历账户 → 导入</li>
+            <li><em>国产手机（华为/小米等）：用"日历"App → 设置 → 导入日程</em></li>
+          </ol>
+        </div>
+        <div class="platform-card">
+          <h4>🍎 Mac</h4>
+          <p>最简单：双击 .ics 文件 → 自动弹出"日历"App → 点「导入」即可。</p>
+        </div>
+        <div class="platform-card">
+          <h4>💻 Windows / Outlook</h4>
+          <p>双击 .ics 文件（默认用 Outlook 打开）→ 点「保存并关闭」；或打开 Outlook → 文件 → 打开和导出 → 导入。</p>
+        </div>
+        <div class="platform-card">
+          <h4>🌐 Google 日历（网页版）</h4>
+          <ol>
+            <li>电脑浏览器打开 calendar.google.com</li>
+            <li>右上角 ⚙ 设置 → 导入和导出</li>
+            <li>选择 .ics 文件 → 导入</li>
+          </ol>
+          <p style="color:#e53e3e;font-size:12px;margin-top:6px;">⚠️ 注意：Google 日历手机 App 不支持导入 .ics，必须用网页版。</p>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>❓ 常见问题</h2>
+        <div class="faq-item">
+          <div class="question">导入后日历里看不到？</div>
+          <div class="answer">检查是否添加到了正确的日历账户（iCloud / Google / 本地）。iPhone 用户确认"日历"App 中对应账户已勾选显示。</div>
+        </div>
+        <div class="faq-item">
+          <div class="question">时间不对？</div>
+          <div class="answer">检查手机时区设置。ICS 文件使用 UTC 时间，导入时会自动转为本地时区。</div>
+        </div>
+        <div class="faq-item">
+          <div class="question">重复规则（每周/单双周）没生效？</div>
+          <div class="answer">部分安卓自带日历对复杂重复规则支持不佳，建议使用 Google 日历或 Outlook。</div>
+        </div>
+        <div class="faq-item">
+          <div class="question">怎么删除导入的课表？</div>
+          <div class="answer">iPhone：日历 App → 找到导入的事件 → 编辑 → 滚动到底部「删除此事件」。批量删除：在日历设置中找到导入时使用的日历账户，直接删除该日历。</div>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>💡 小贴士</h2>
+        <p>每年 <strong>2 月和 9 月</strong>是导入课表的高峰期。导入后建议先在日历里翻到第一周确认一下，确保没有识别错误。本工具纯前端运行，你的数据不会上传到任何服务器。</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 确认卡片弹窗 -->
+<div class="confirm-overlay" id="confirm-overlay" style="display:none;">
+  <div class="confirm-modal">
+    <h3 id="confirm-title">✨ 识别结果确认</h3>
+    <div id="confirm-list"></div>
+    <div class="confirm-actions">
+      <button class="btn-confirm-all" onclick="confirmAddAll()">✅ 全部加入</button>
+      <button class="btn-cancel" onclick="closeConfirm()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== 全局状态 ====================
+let events = [];
+let editIndex = -1;
+let calYear, calMonth;
+let clkMode = 'hour', clkHour = 8, clkMin = 0;
+let recMode = 'general'; // 识别模式：general=通用 / sports=体育赛事 / course=课程表
+let pendingConfirms = [];
+let templateApplied = false;
+
+// ==================== 模板预设 ====================
+const TEMPLATES = {
+  'reading-plan': [
+    {title:'📖 每日阅读', location:'', description:'固定阅读时间，每天1小时。建议：关掉手机通知，准备一杯水，翻开书。', start:'21:00', end:'22:00', dow:[1,2,3,4,5]},
+    {title:'📚 周末书店/图书馆', location:'附近书店或图书馆', description:'沉浸式阅读 + 选新书。可以带上笔记本做摘抄。', start:'10:00', end:'12:00', dow:[6]},
+    {title:'✍️ 读书笔记', location:'', description:'整理本周阅读笔记，写读后感。推荐格式：书名+核心观点+我的思考+行动项', start:'10:00', end:'11:30', dow:[0]},
+    {title:'📊 月度阅读复盘', location:'', description:'统计本月读完几本，哪些书值得重读，下月阅读计划调整。', start:'20:00', end:'20:30', dow:[0], interval:4}
+  ],
+  'university': [
+    {title:'高等数学', location:'工科楼A201', description:'', start:'08:00', end:'09:40', dow:[1,3,5]},
+    {title:'大学英语', location:'文科楼B栋', description:'', start:'10:00', end:'11:40', dow:[2,4]},
+    {title:'体育', location:'体育馆', description:'', start:'14:00', end:'15:30', dow:[3]}
+  ]
+};
+
+// ==================== 页面切换 ====================
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page-nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+}
+
+// ==================== 日历 ====================
+function initCal() {
+  const d = new Date();
+  calYear = d.getFullYear(); calMonth = d.getMonth();
+  renderCal();
+}
+function renderCal() {
+  document.getElementById('cal-title').textContent = `${calYear}年${calMonth+1}月`;
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  const names = ['日','一','二','三','四','五','六'];
+  names.forEach(n => { const d=document.createElement('div'); d.className='day-name'; d.textContent=n; grid.appendChild(d); });
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+  const today = new Date();
+  for(let i=0;i<firstDay;i++){const d=document.createElement('div');d.className='day-cell empty';grid.appendChild(d)}
+  for(let i=1;i<=daysInMonth;i++){
+    const d=document.createElement('div');d.className='day-cell';d.textContent=i;
+    if(i===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear())d.classList.add('today');
+    d.onclick=()=>{document.querySelectorAll('.day-cell').forEach(c=>c.classList.remove('selected'));d.classList.add('selected')};
+    grid.appendChild(d);
+  }
+  const totalCells = grid.children.length - 7;
+  const remaining = 42 - totalCells;
+  for(let i=1;i<=remaining&&totalCells+i<=42;i++){const d=document.createElement('div');d.className='day-cell empty';grid.appendChild(d)}
+}
+function calPrevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--}renderCal()}
+function calNextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++}renderCal()}
+
+// ==================== 时钟 ====================
+function clkSetMode(m){
+  clkMode=m;
+  document.getElementById('clk-mode-hour').classList.toggle('active',m==='hour');
+  document.getElementById('clk-mode-min').classList.toggle('active',m==='min');
+}
+function clkSetAmPm(isPM){
+  const currentlyPM=clkHour>=12;
+  if(isPM&&!currentlyPM)clkHour+=12;       // 上午 → 下午（8点→20点）
+  else if(!isPM&&currentlyPM)clkHour-=12;  // 下午 → 上午（20点→8点）
+  updateClockDisplay();
+}
+function clkClick(e){
+  const svg=document.getElementById('clk-svg');const rect=svg.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const angle=Math.atan2(e.clientY-cy,e.clientX-cx)*(180/Math.PI)+90;
+  const normalized=angle<0?angle+360:angle;
+  if(clkMode==='hour'){
+    const h12=Math.round(normalized/30)%12; // 表盘 0..11，0 对应 12 点方向
+    const isPM=clkHour>=12;                 // 沿用当前 上午/下午
+    clkHour=isPM?(h12===0?12:h12+12):(h12===0?0:h12); // 12小时制 → 24小时制
+    clkSetMode('min');
+  }
+  else{clkMin=Math.round(normalized/6)%60;clkSetMode('hour')}
+  updateClockDisplay();
+}
+function updateClockDisplay(){
+  document.getElementById('clk-display').textContent=`${String(clkHour).padStart(2,'0')}:${String(clkMin).padStart(2,'0')}`;
+  document.getElementById('clk-ampm-am').classList.toggle('active',clkHour<12);
+  document.getElementById('clk-ampm-pm').classList.toggle('active',clkHour>=12);
+  const h12=clkHour%12,hAngle=h12*30,mAngle=clkMin*6;
+  document.getElementById('clk-hand-hour').setAttribute('x2',100+30*Math.sin(hAngle*Math.PI/180));
+  document.getElementById('clk-hand-hour').setAttribute('y2',100-30*Math.cos(hAngle*Math.PI/180));
+  document.getElementById('clk-hand-minute').setAttribute('x2',100+45*Math.sin(mAngle*Math.PI/180));
+  document.getElementById('clk-hand-minute').setAttribute('y2',100-45*Math.cos(mAngle*Math.PI/180));
+}
+(function initClock(){
+  const ticks=document.getElementById('clk-ticks'), labels=document.getElementById('clk-labels');
+  for(let i=0;i<60;i++){
+    const angle=i*6*Math.PI/180,r1=i%5===0?75:82,r2=90;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',100+r1*Math.sin(angle));line.setAttribute('y1',100-r1*Math.cos(angle));
+    line.setAttribute('x2',100+r2*Math.sin(angle));line.setAttribute('y2',100-r2*Math.cos(angle));
+    line.setAttribute('class',i%5===0?'clock-tick-major':'clock-tick');ticks.appendChild(line);
+    if(i%5===0){const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',100+68*Math.sin(angle));t.setAttribute('y',100-68*Math.cos(angle)+3);t.textContent=i/5===0?12:i/5;t.setAttribute('class','clock-label');labels.appendChild(t)}
+  }
+  updateClockDisplay();
+})();
+
+// ==================== 重复规则 ====================
+function updateRRule(){
+  // 联动UI，实际拼装在导出时处理
+}
+
+// ==================== 时间格式工具 ====================
+// 解析存储用的紧凑 ICS 时间（20260903T123000 或 20260903T123000Z）→ Date
+function parseCompactDT(str){
+  if(!str)return new Date(NaN);
+  const m=String(str).match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/);
+  if(m)return new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}${m[7]||''}`);
+  return new Date(str); // 兼容标准 ISO 格式
+}
+// 确保 ICS 时间以单个 Z 结尾（去掉多余/补上缺失的 Z）
+function icsStamp(s){return String(s||'').replace(/Z$/,'')+'Z'}
+
+// ==================== 表单操作 ====================
+function openForm(idx=-1){
+  editIndex=idx;document.getElementById('edit-form').style.display='block';
+  if(idx>=0){
+    const e=events[idx];document.getElementById('form-title-text').textContent='编辑事件';
+    document.getElementById('ev-title').value=e.title;
+    document.getElementById('ev-location').value=e.location||'';
+    document.getElementById('ev-desc').value=e.desc||'';
+    document.getElementById('ev-reminder').value=e.reminder||'PT15M';
+    // 解析时间填充日历和时钟
+    const sd=parseCompactDT(e.start);
+    calYear=sd.getFullYear();calMonth=sd.getMonth();
+    renderCal();
+    // 自动选中该事件所在的日期
+    document.querySelectorAll('.day-cell:not(.empty)').forEach(c=>{
+      if(parseInt(c.textContent)===sd.getDate())c.classList.add('selected');
+    });
+    clkHour=sd.getHours();clkMin=sd.getMinutes();updateClockDisplay();
+    const ed=parseCompactDT(e.end);
+    document.getElementById('ev-end-time').value=`${String(ed.getHours()).padStart(2,'0')}:${String(ed.getMinutes()).padStart(2,'0')}`;
+  } else {
+    document.getElementById('form-title-text').textContent='新建事件';
+    document.getElementById('ev-title').value='';document.getElementById('ev-location').value='';document.getElementById('ev-desc').value='';
+    document.getElementById('ev-reminder').value='PT15M';
+    initCal();clkHour=8;clkMin=0;updateClockDisplay();
+  }
+  document.getElementById('edit-form').scrollIntoView({behavior:'smooth'});
+}
+function cancelEdit(){editIndex=-1;document.getElementById('edit-form').style.display='none'}
+function saveEvent(){
+  const title=document.getElementById('ev-title').value.trim();
+  if(!title){alert('请填写事件标题');return}
+  const selDay=document.querySelector('.day-cell.selected');
+  if(!selDay){alert('请选择日期');return}
+  const day=parseInt(selDay.textContent);
+  const startDT=new Date(calYear,calMonth,day,clkHour,clkMin);
+  const endParts=document.getElementById('ev-end-time').value.split(':');
+  let endDT=new Date(calYear,calMonth,day,parseInt(endParts[0]),parseInt(endParts[1]));
+  if(endDT<=startDT)endDT=new Date(startDT.getTime()+3600000);
+  const reminder=document.getElementById('ev-reminder').value;
+  const ev={
+    title,location:document.getElementById('ev-location').value,desc:document.getElementById('ev-desc').value,
+    start:startDT.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),
+    end:endDT.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),
+    reminder,uid:'ev-'+Date.now()+'-'+Math.random().toString(36).substr(2,5)
+  };
+  if(editIndex>=0){events[editIndex]=ev}else{events.push(ev)}
+  editIndex=-1;document.getElementById('edit-form').style.display='none';
+  renderEvents();
+}
+
+// ==================== 事件列表 ====================
+function renderEvents(){
+  const list=document.getElementById('event-list');list.innerHTML='';
+  events.forEach((e,i)=>{
+    const sd=parseCompactDT(e.start),ed=parseCompactDT(e.end);
+    const item=document.createElement('div');item.className='event-item';
+    item.innerHTML=`<div class="info"><div class="title">${e.title}</div><div class="meta">${sd.toLocaleDateString()} ${sd.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} - ${ed.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} | ${e.location||'无地点'}</div></div><div class="actions"><button class="btn-edit" onclick="openForm(${i})">编辑</button><button class="btn-del" onclick="delEvent(${i})">删除</button></div>`;
+    list.appendChild(item);
+  });
+}
+function delEvent(i){events.splice(i,1);renderEvents()}
+
+// ==================== 智能解析 ====================
+// 切换识别模式（通用 / 体育赛事 / 课程表）
+function setRecMode(mode,btn){
+  recMode=mode;
+  document.querySelectorAll('#mode-switch button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  const tips={
+    general:'粘贴包含时间和事件的文字，自动识别（含 vs/对阵 赛事）。例如：周三 10:00-11:40 大学英语 文科楼B栋',
+    sports:'当前：🏀 体育赛事 —— 粘贴如「10月25日 19:35 湖人 vs 勇士」',
+    course:'当前：🎓 课程表 —— 粘贴如「周一 8:00-9:40 高等数学 工科楼A201」'
+  };
+  document.getElementById('paste-input').placeholder=tips[mode];
+  const modeName={general:'通用',sports:'体育赛事',course:'课程表'}[mode];
+  setPasteStatus('loading',`当前识别模式：${modeName}`);
+}
+function parsePastedText(){
+  const text=document.getElementById('paste-input').value.trim();
+  if(!text){document.getElementById('paste-status').innerHTML='<span style="color:#e53e3e">请先粘贴文字</span>';return}
+  const lines=text.split('\n').filter(l=>l.trim());
+  pendingConfirms=[];
+  lines.forEach(line=>{
+    const result=parseLine(line,recMode);
+    if(result) pendingConfirms.push(result);
+  });
+  if(pendingConfirms.length===0){document.getElementById('paste-status').innerHTML='<span style="color:#e53e3e">未能识别出有效事件，请检查格式或切换识别模式</span>';return}
+  showConfirmCards(pendingConfirms);
+}
+function parseLine(text, mode){
+  mode=mode||'general';
+  if(mode==='sports'){
+    const sp=parseSportsLine(text,true); // 体育模式：允许 对 / - 作对阵分隔符
+    if(sp)return sp; // 未匹配到对阵时退回通用解析
+  }
+  const g=parseGenericLine(text);
+  // 通用模式：通用解析没有任何时间/星期/日期信号时，再尝试按对阵识别（只认 vs/对阵 强信号）
+  if(mode==='general'&&g.start==='08:00'&&g.end==='09:40'&&!g.dow.length&&!g.date){
+    const sp=parseSportsLine(text,false);
+    if(sp)return sp;
+  }
+  return g;
+}
+// 体育赛事解析：日期(可选) + 时间(可选) + 对阵(A vs B / A对B / A - B)
+// loose=true（体育模式）才把 对 / - 当作对阵分隔符
+function parseSportsLine(text, loose){
+  // 文本里已有完整时间段(如 8:00-9:40)时，属于课表/通用格式，不按对阵解析
+  if(/(\d{1,2})[:：](\d{2})\s*[-~到至]\s*(\d{1,2})[:：](\d{2})/.test(text))return null;
+  let spText=text;
+  let spDate=null;
+  // 日期：2026-10-25 / 10月25日 / 10/25（先移除，避免与对阵分隔符混淆）
+  const dFull=text.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  const dMonth=text.match(/(\d{1,2})月(\d{1,2})[日号]?/);
+  const dSlash=text.match(/(\d{1,2})\/(\d{1,2})(?!\d)/);
+  if(dFull){spDate=new Date(+dFull[1],+dFull[2]-1,+dFull[3]);spText=spText.replace(dFull[0],'')}
+  else if(dMonth){const y=new Date().getFullYear();spDate=new Date(y,+dMonth[1]-1,+dMonth[2]);spText=spText.replace(dMonth[0],'')}
+  else if(dSlash){const y=new Date().getFullYear();spDate=new Date(y,+dSlash[1]-1,+dSlash[2]);spText=spText.replace(dSlash[0],'')}
+  // 时间：08:00 / 8:00（单个开始时间）
+  let spTime=null;
+  const tOne=text.match(/(\d{1,2})[:：](\d{2})/);
+  if(tOne){spTime=`${String(+tOne[1]).padStart(2,'0')}:${tOne[2]}`;spText=spText.replace(tOne[0],'')}
+  // 对阵格式
+  const spMatch=spText.match(/(.+?)\s*vs\.?\s*(.+)/i)
+    ||spText.match(/(.+?)\s*对阵\s*(.+)/)
+    ||(loose&&spText.match(/(.+?)\s*对\s*(.+)/))
+    ||(loose&&spText.match(/(.+?)\s*-\s*(.+)/));
+  if(!spMatch)return null;
+  const teamA=spMatch[1].trim(),teamB=spMatch[2].trim();
+  if(!teamA||!teamB||/^\d/.test(teamA))return null;
+  if(!spDate){const t=new Date();spDate=new Date(t.getFullYear(),t.getMonth(),t.getDate())} // 默认今天
+  const parts=(spTime||'19:30').split(':'); // 默认 19:30
+  const sh=+parts[0],sm=+parts[1],endMin=sh*60+sm+120; // 默认时长 2 小时
+  return {
+    title:teamA+' vs '+teamB,location:'',teacher:'',desc:'',dow:[],interval:1,
+    date:spDate,
+    start:`${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`,
+    end:`${String(Math.floor(endMin/60)%24).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`
+  };
+}
+// 通用/课程解析：星期 + 时间段 + 日期 + 地点 + 老师
+function parseGenericLine(text){
+  const result={title:'',location:'',teacher:'',desc:'',dow:[],interval:1,start:'08:00',end:'09:40',date:null};
+  // 星期
+  const dowMap={'一':'MO','二':'TU','三':'WE','四':'TH','五':'FR','六':'SA','日':'SU','天':'SU'};
+  const weekMatches=text.match(/周[一二三四五六日天]/g)||text.match(/星期[一二三四五六日天]/g);
+  if(weekMatches) weekMatches.forEach(w=>{const key=w.replace('周','').replace('星期','');if(dowMap[key])result.dow.push(dowMap[key])});
+  // 时间段：8:00-9:40 / 8:00~9:40 / 8点到9点40
+  const timeMatch=text.match(/(\d{1,2})[:：](\d{2})\s*[-~到至]\s*(\d{1,2})[:：](\d{2})/);
+  if(timeMatch){result.start=`${timeMatch[1].padStart(2,'0')}:${timeMatch[2]}`;result.end=`${timeMatch[3].padStart(2,'0')}:${timeMatch[4]}`}
+  else{const hm=text.match(/(\d{1,2})[:：](\d{2})/);if(hm){result.start=`${hm[1].padStart(2,'0')}:${hm[2]}`;result.end=`${String((parseInt(hm[1])+1)%24).padStart(2,'0')}:${hm[2]}`}}
+  // 日期：2026-10-25 或 10月25日
+  const dateY=text.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  const dateM=text.match(/(\d{1,2})月(\d{1,2})[日号]/);
+  if(dateY){result.date=new Date(+dateY[1],+dateY[2]-1,+dateY[3])}
+  else if(dateM){const y=new Date().getFullYear();result.date=new Date(y,+dateM[1]-1,+dateM[2])}
+  // 地点
+  const locMatch=text.match(/地点[：:]\s*(.+?)(?:\s|,|$)/)||text.match(/(工科楼|文科楼|教学楼|体育馆|图书馆)[A-Za-z0-9]*[栋座区层号]?/);
+  if(locMatch) result.location=locMatch[0].replace(/地点[：:]/,'').trim();
+  // 老师
+  const tMatch=text.match(/(张老师|李老师|王老师|刘老师|陈老师|赵老师)/);
+  if(tMatch) result.teacher=tMatch[1];
+  // 标题（去除已提取的时间/星期/日期/地点/老师）
+  let clean=text.replace(/周[一二三四五六日天]/g,'');
+  clean=clean.replace(/\d{1,2}[:：]\d{2}\s*[-~到至]\s*\d{1,2}[:：]\d{2}/g,'');
+  clean=clean.replace(/\d{1,2}[:：]\d{2}/g,''); // 去掉残留的单个时间
+  clean=clean.replace(/\d{4}[-/]\d{1,2}[-/]\d{1,2}/g,'').replace(/\d{1,2}月\d{1,2}[日号]/g,'');
+  clean=clean.replace(/地点[：:]\s*\S+/g,'');
+  if(tMatch)clean=clean.replace(tMatch[0],'');
+  if(locMatch)clean=clean.replace(locMatch[0],'');
+  clean=clean.replace(/[\s\-—,，、]+$/,'').trim();
+  result.title=clean||'未命名事件';
+  return result;
+}
+function showConfirmCards(items){
+  const list=document.getElementById('confirm-list');list.innerHTML='';
+  items.forEach((item,i)=>{
+    const card=document.createElement('div');card.className='confirm-item';
+    card.innerHTML=`<div><span class="auto-badge">自动</span> <strong>${item.title}</strong></div>
+      <input class="title-input" value="${item.title}" placeholder="事件标题">
+      <div class="detail">📅 ${item.date?item.date.toLocaleDateString():'待定'} ⏰ ${item.start}-${item.end} 📍 ${item.location||'无'} 🔁 ${item.dow.join(',')||'不重复'}</div>`;
+    list.appendChild(card);
+  });
+  document.getElementById('confirm-overlay').style.display='flex';
+}
+function confirmAddAll(){
+  const inputs=document.querySelectorAll('#confirm-list .title-input');
+  pendingConfirms.forEach((item,i)=>{
+    const title=inputs[i].value.trim()||item.title;
+    const base=item.date||new Date();
+    const sh=parseInt(item.start.split(':')[0]),sm=parseInt(item.start.split(':')[1]);
+    const eh=parseInt(item.end.split(':')[0]),em=parseInt(item.end.split(':')[1]);
+    const startDT=new Date(base);startDT.setHours(sh,sm,0,0);
+    const endDT=new Date(base);endDT.setHours(eh,em,0,0);
+    if(endDT<=startDT)endDT.setTime(startDT.getTime()+3600000);
+    const reminder=item.reminder||'PT15M';
+    events.push({title,location:item.location,desc:item.desc||(item.teacher?'老师:'+item.teacher:''),start:startDT.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),end:endDT.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),reminder,uid:'ev-'+Date.now()+'-'+Math.random().toString(36).substr(2,5)});
+  });
+  closeConfirm();renderEvents();
+}
+function closeConfirm(){document.getElementById('confirm-overlay').style.display='none';pendingConfirms=[]}
+
+// ==================== 图片识别（DeepSeek Vision API）====================
+let cameraStream=null;
+function startCamera(){
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(stream=>{
+    cameraStream=stream;const v=document.getElementById('camera-preview');v.style.display='block';v.srcObject=stream;
+    const btn=document.createElement('button');btn.textContent='📸 抓拍';btn.className='btn-primary';btn.onclick=()=>{capturePhoto();btn.remove()};
+    document.querySelector('.camera-row').appendChild(btn);
+  }).catch(e=>alert('无法访问摄像头：'+e.message));
+}
+function capturePhoto(){
+  const v=document.getElementById('camera-preview'),c=document.getElementById('camera-canvas');
+  c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());v.style.display='none';
+  recognizeImage(c.toDataURL('image/png')); // canvas → base64 data URI 发送识别
+}
+function ocrFromFile(e){
+  const f=e.target.files[0];e.target.value='';
+  if(f){const r=new FileReader();r.onload=()=>recognizeImage(r.result);r.readAsDataURL(f)}
+}
+function setPasteStatus(kind,msg){
+  const color=kind==='ok'?'#48bb78':(kind==='err'?'#e53e3e':'#667eea');
+  document.getElementById('paste-status').innerHTML=`<span style="color:${color}">${msg}</span>`;
+}
+// 上传 base64 图片 → 后端 /api/vision-extract（DeepSeek Vision）
+function recognizeImage(dataUri){
+  const modeName={general:'通用',sports:'体育赛事',course:'课程表'}[recMode]||'通用';
+  setPasteStatus('loading',`🤖 AI 正在识别中（${modeName}模式）...`);
+  fetch('/api/vision-extract',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({image:dataUri, mode:recMode})
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if(!data||data.error){setPasteStatus('err','截图识别失败，请尝试手动粘贴文字');return}
+    const list=data.events||(Array.isArray(data)?data:[]);
+    pendingConfirms=list.map(ev=>visionEventToConfirm(ev)).filter(Boolean);
+    if(pendingConfirms.length===0){setPasteStatus('err','未能识别出日程，请尝试手动粘贴文字或切换识别模式');return}
+    setPasteStatus('ok','✅ AI 识别到 '+pendingConfirms.length+' 条日程，请在下方确认');
+    showConfirmCards(pendingConfirms);
+  })
+  .catch(()=>setPasteStatus('err','截图识别失败，请尝试手动粘贴文字'));
+}
+// 将 AI 返回的赛事(ISO 时间)映射成确认卡片所需结构 {date,start,end,...}
+function visionEventToConfirm(ev){
+  try{
+    const start=ev&&ev.start?new Date(ev.start):null;
+    if(!start||isNaN(start.getTime()))return null;
+    const end=ev.end?new Date(ev.end):new Date(start.getTime()+2*3600000);
+    const remind=Math.floor(Number(ev.reminder_minutes_before));
+    return {
+      title:(ev.title||'').trim()||'未命名日程',
+      location:ev.location||'',
+      teacher:'',
+      desc:ev.description||'',
+      dow:[],interval:1,
+      date:new Date(start.getFullYear(),start.getMonth(),start.getDate()),
+      start:`${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`,
+      end:`${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`,
+      reminder:Number.isFinite(remind)?'PT'+remind+'M':'PT15M'
+    };
+  }catch(e){return null}
+}
+
+// ==================== 模板 ====================
+function applyTemplateFromStorage(){
+  const tid=localStorage.getItem('useTemplate');
+  if(!tid||!TEMPLATES[tid])return;
+  const tpl=TEMPLATES[tid];
+  const startOfWeek=getStartOfWeek(new Date());
+  tpl.forEach(t=>{
+    const dow=t.dow[0]||1;
+    const d=new Date(startOfWeek);d.setDate(d.getDate()+dow);
+    const [sh,sm]=t.start.split(':');d.setHours(parseInt(sh),parseInt(sm));
+    const ed=new Date(d);const [eh,em]=t.end.split(':');ed.setHours(parseInt(eh),parseInt(em));
+    events.push({title:t.title,location:t.location||'',desc:t.description||'',start:d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),end:ed.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),reminder:'PT15M',uid:'ev-'+Date.now()+'-'+Math.random().toString(36).substr(2,5)});
+  });
+  localStorage.removeItem('useTemplate');
+  document.getElementById('template-banner').style.display='flex';
+  document.getElementById('banner-tpl-name').textContent=tid==='reading-plan'?'读书计划':tid==='university'?'大学课表':'模板';
+  document.getElementById('banner-tpl-count').textContent=tpl.length;
+  templateApplied=true;renderEvents();
+}
+function getStartOfWeek(d){const r=new Date(d);r.setDate(r.getDate()-r.getDay());return r}
+function dismissBanner(){document.getElementById('template-banner').style.display='none'}
+function scrollToEvents(){document.getElementById('event-list').scrollIntoView({behavior:'smooth'})}
+
+// ==================== 导出 ICS ====================
+function exportICS(){
+  if(events.length===0){alert('没有事件可导出');return}
+  let ics='BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//ICS Editor//ZH\nCALSCALE:GREGORIAN\n';
+  events.forEach(e=>{
+    ics+=`BEGIN:VEVENT\nUID:${e.uid}@ics-editor\nDTSTAMP:${icsStamp(new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''))}\nSUMMARY:${e.title}\nDTSTART:${icsStamp(e.start)}\nDTEND:${icsStamp(e.end)}\n`;
+    if(e.location)ics+=`LOCATION:${e.location}\n`;
+    if(e.desc)ics+=`DESCRIPTION:${e.desc}\n`;
+    // VALARM
+    if(e.reminder&&e.reminder!=='PT0M'){
+      ics+=`BEGIN:VALARM\nTRIGGER:-${e.reminder}\nACTION:DISPLAY\nDESCRIPTION:即将开始：${e.title}\nEND:VALARM\n`;
+    }
+    ics+='END:VEVENT\n';
+  });
+  ics+='END:VCALENDAR';
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='calendar.ics';a.click();URL.revokeObjectURL(url);
+  document.getElementById('export-guide').style.display='block';
+  document.getElementById('export-guide').innerHTML=`<div class="export-guide">✅ 文件已生成！不知道怎么弄进手机日历？👉 <a href="#" onclick="switchPage('help')">查看各平台导入教程 →</a></div>`;
+}
+
+// ==================== 导入 ICS ====================
+function importICS(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>{
+    const text=r.result;const evs=parseICS(text);
+    if(evs.length>0){events=evs;renderEvents();alert(`成功导入 ${evs.length} 个事件`)}else alert('未解析到事件');
+  };r.readAsText(f);
+}
+function parseICS(text){
+  const lines=text.split(/\r?\n/);const evs=[];let cur=null;
+  lines.forEach(l=>{
+    if(l==='BEGIN:VEVENT')cur={uid:'',title:'',start:'',end:'',location:'',desc:'',reminder:'PT15M'};
+    else if(l==='END:VEVENT'&&cur){if(cur.start)evs.push(cur);cur=null}
+    else if(cur){
+      if(l.startsWith('SUMMARY:'))cur.title=l.slice(8);
+      else if(l.startsWith('DTSTART:'))cur.start=l.slice(8).replace('Z','');
+      else if(l.startsWith('DTEND:'))cur.end=l.slice(6).replace('Z','');
+      else if(l.startsWith('LOCATION:'))cur.location=l.slice(9);
+      else if(l.startsWith('DESCRIPTION:'))cur.desc=l.slice(12);
+    }
+  });
+  return evs;
+}
+
+// ==================== 初始化 ====================
+initCal();
+applyTemplateFromStorage();
+</script>
+</body>
+</html>

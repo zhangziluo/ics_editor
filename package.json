@@ -1,0 +1,22 @@
+{
+  "name": "ics-calendar-suite",
+  "version": "1.1.0",
+  "description": "ICS 日历编辑器：文字/截图 → 智能解析或 DeepSeek Vision 识别 → 一键导出 .ics",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "ics",
+    "calendar",
+    "deepseek",
+    "vision",
+    "ocr"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0"
+  }
+}

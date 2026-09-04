@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICS 日历模板导航</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;background:#eef0f6;color:#333;line-height:1.6}
+header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:16px 20px 34px;position:relative;overflow:hidden}
+header::before{content:"";position:absolute;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,.07);top:-140px;right:-90px}
+header::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.05);bottom:-110px;left:-70px}
+.topbar{max-width:880px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:relative;z-index:1}
+.brand{font-size:16px;font-weight:800;letter-spacing:.5px}
+.topnav{display:flex;gap:8px;flex-wrap:wrap}
+.nav-pill{color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.16);transition:all .2s}
+.nav-pill:hover{background:rgba(255,255,255,.34);transform:translateY(-1px)}
+.nav-pill.solid{background:#fff;color:#5a67d8;box-shadow:0 4px 10px rgba(0,0,0,.15)}
+.nav-pill.solid:hover{box-shadow:0 6px 16px rgba(0,0,0,.22)}
+.hero{max-width:880px;margin:30px auto 0;text-align:center;position:relative;z-index:1}
+.hero h1{font-size:27px;margin-bottom:8px;line-height:1.35}
+.hero p{opacity:.9;font-size:14.5px}
+.container{max-width:880px;margin:0 auto;padding:22px 16px 10px}
+.search-card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 2px 14px rgba(0,0,0,.07);margin-bottom:24px;position:relative;top:-8px}
+.search-wrap{position:relative;margin-bottom:12px}
+.mag{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:15px;opacity:.55}
+.search-box{width:100%;padding:12px 16px 12px 44px;border:2px solid #e2e8f0;border-radius:999px;font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s;background:#f7fafc}
+.search-box:focus{border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.15);background:#fff}
+.filter-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.filter-tabs button{padding:6px 15px;border:1.5px solid #e2e8f0;border-radius:999px;background:#fff;color:#666;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+.filter-tabs button:hover{border-color:#c3d0fd;color:#5a67d8}
+.filter-tabs button.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-color:transparent;box-shadow:0 4px 10px rgba(102,126,234,.3)}
+.section-title{display:flex;align-items:center;gap:9px;font-size:18px;color:#2d3748;margin:4px 2px 15px}
+.section-title .bar{width:4px;height:19px;border-radius:3px;background:linear-gradient(180deg,#667eea,#a78bfa)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:15px;margin-bottom:26px}
+.card{background:#fff;border-radius:18px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.05);cursor:pointer;transition:all .22s;border:2px solid transparent;position:relative}
+.card:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(102,126,234,.2);border-color:#c3d0fd}
+.card .icon{width:48px;height:48px;border-radius:14px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:25px;margin-bottom:12px}
+.card h3{font-size:15.5px;color:#2d3748;margin-bottom:4px}
+.card p{font-size:12.5px;color:#8a94a6;margin-bottom:11px;line-height:1.5}
+.tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{background:#f0f2f7;padding:2px 10px;border-radius:999px;font-size:11px;color:#667eea;font-weight:600}
+.card.hot::after{content:"🔥";position:absolute;top:13px;right:16px;font-size:16px}
+.guide-panel{background:#fff;border-radius:18px;padding:22px;box-shadow:0 2px 14px rgba(0,0,0,.07);margin-bottom:24px}
+.guide-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.gp-title{font-size:18px;color:#2d3748;margin-bottom:4px}
+.gp-sub{font-size:13px;color:#8a94a6}
+.btn-sm{display:inline-block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;text-decoration:none;font-size:13.5px;font-weight:600;padding:9px 18px;border-radius:999px;transition:all .2s;box-shadow:0 4px 10px rgba(102,126,234,.25)}
+.btn-sm:hover{transform:translateY(-2px);box-shadow:0 8px 16px rgba(102,126,234,.35)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.step{background:#f7fafc;border:1px solid #e2e8f0;border-radius:14px;padding:13px 10px;text-align:center;transition:all .2s}
+.step:hover{border-color:#c3d0fd;transform:translateY(-2px)}
+.step .num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:7px}
+.step b{display:block;font-size:13.5px;color:#2d3748;margin-bottom:3px}
+.step span{font-size:12px;color:#8a94a6;line-height:1.5;display:block}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:6px 0 34px}
+.btn{display:inline-block;padding:13px 28px;border-radius:999px;text-decoration:none;font-weight:700;font-size:15px;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 8px 20px rgba(102,126,234,.4)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(102,126,234,.5)}
+.btn-ghost{background:#fff;color:#5a67d8;border:2px solid #e2e8f0}
+.btn-ghost:hover{border-color:#667eea;transform:translateY(-2px)}
+footer{text-align:center;color:#a0aec0;font-size:12.5px;padding:10px 16px 28px}
+@media (max-width:560px){.hero h1{font-size:22px}.search-card{top:0;padding:14px}.container{padding-top:16px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div class="brand">📅 ICS 日历模板导航</div>
+    <nav class="topnav">
+      <a class="nav-pill" href="guide.html">📖 新手指南</a>
+      <a class="nav-pill solid" href="ics_editor.html">🚀 打开编辑器</a>
+    </nav>
+  </div>
+  <div class="hero">
+    <h1>不知道怎么规划？选个模板，一键生成日历</h1>
+    <p>选模板 → 填日程 → 导出 .ics → 导入手机日历，到点自动提醒 ✨</p>
+  </div>
+</header>
+<div class="container">
+  <div class="search-card">
+    <div class="search-wrap">
+      <span class="mag">🔍</span>
+      <input class="search-box" placeholder="搜索模板，如：考研、健身、课表..." oninput="filterCards(this.value)">
+    </div>
+    <div class="filter-tabs">
+      <button class="active" onclick="filterCat('all',this)">全部</button>
+      <button onclick="filterCat('study',this)">📚 学习</button>
+      <button onclick="filterCat('health',this)">💪 健康</button>
+      <button onclick="filterCat('work',this)">💼 工作</button>
+      <button onclick="filterCat('life',this)">🏠 生活</button>
+      <button onclick="filterCat('family',this)">👨‍👩‍👧 家庭</button>
+    </div>
+  </div>
+  <h2 class="section-title"><span class="bar"></span>精选模板</h2>
+  <div class="grid" id="card-grid">
+    <div class="card" data-cat="study" onclick="useTpl('university')"><div class="icon">🎓</div><h3>大学课表</h3><p>标准大学周课表模板</p><div class="tags"><span class="tag">学习</span><span class="tag">热门</span></div></div>
+    <div class="card hot" data-cat="study" onclick="useTpl('reading-plan')"><div class="icon">📖</div><h3>读书计划</h3><p>一年读完50本书的周计划</p><div class="tags"><span class="tag">学习</span><span class="tag">习惯</span></div></div>
+    <div class="card" data-cat="health" onclick="useTpl('fitness')"><div class="icon">💪</div><h3>健身周计划</h3><p>每周3-5次训练安排</p><div class="tags"><span class="tag">健康</span></div></div>
+    <div class="card" data-cat="work" onclick="useTpl('pomodoro')"><div class="icon">🍅</div><h3>番茄工作法</h3><p>25分钟专注+5分钟休息</p><div class="tags"><span class="tag">工作</span></div></div>
+    <div class="card" data-cat="life" onclick="useTpl('routine')"><div class="icon">🌅</div><h3>作息打卡</h3><p>早睡早起规律生活</p><div class="tags"><span class="tag">生活</span></div></div>
+    <div class="card" data-cat="family" onclick="useTpl('elderly')"><div class="icon">💊</div><h3>长辈用药提醒</h3><p>每日定时服药提醒</p><div class="tags"><span class="tag">家庭</span></div></div>
+  </div>
+  <div class="guide-panel">
+    <div class="guide-head">
+      <div>
+        <h2 class="gp-title">🧭 新手规划指南</h2>
+        <p class="gp-sub">按这四步开始，5 分钟做出你的第一个日历</p>
+      </div>
+      <a class="btn-sm" href="guide.html">📖 阅读完整指南 →</a>
+    </div>
+    <div class="steps">
+      <div class="step"><span class="num">1</span><b>固定项</b><span>先把每周固定的课 / 工作填进去</span></div>
+      <div class="step"><span class="num">2</span><b>重要项</b><span>加入考试、截止日等必须完成的任务</span></div>
+      <div class="step"><span class="num">3</span><b>弹性块</b><span>安排阅读、运动等可调整的时间</span></div>
+      <div class="step"><span class="num">4</span><b>执行</b><span>导出 .ics → 导入手机日历，到点提醒</span></div>
+    </div>
+  </div>
+  <div class="cta">
+    <a class="btn btn-primary" href="ics_editor.html">🚀 打开编辑器开始制作</a>
+    <a class="btn btn-ghost" href="guide.html">📖 查看新手指南</a>
+  </div>
+</div>
+<footer>📅 ICS 日历套件 · 纯前端 · 数据不出本地</footer>
+<script>
+function filterCat(cat,btn){
+  document.querySelectorAll('.filter-tabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.card').forEach(c=>{c.style.display=(cat==='all'||c.dataset.cat===cat)?'block':'none'});
+}
+function filterCards(q){
+  document.querySelectorAll('.card').forEach(c=>{c.style.display=c.textContent.includes(q)?'block':'none'});
+}
+function useTpl(id){
+  localStorage.setItem('useTemplate',id);
+  window.location.href='ics_editor.html';
+}
+</script>
+</body>
+</html>
