@@ -32,10 +32,22 @@
 - `openForm`（编辑）与 `renderEvents`（列表）改用 `parseCompactDT`；编辑时**自动选中事件所在日期**。
 - **导出双 Z 修复**：`exportICS` 的 `DTSTART/DTEND/DTSTAMP` 曾输出 `…ZZ`，统一改用 `icsStamp()`。
 
+### 5. AI 截图识别改为「纯前端直连」（方案 A，2026-09-04）
+- 背景：`.env` 藏在 Node 后端导致纯前端/静态部署时 AI 识别不可用。
+- **实测 DeepSeek 支持浏览器 CORS**（OPTIONS/POST 均返回 `access-control-allow-origin`）→ 方案可行。
+- 改动：
+  - `recognizeImage` 直接 `fetch('https://api.deepseek.com/chat/completions')`，`Authorization: Bearer <key>`；Key 存 `localStorage['deepseek_api_key']`（只在本浏览器）。
+  - 页面新增「⚙️ API Key 设置」面板 + **「怎么申请 API Key（大白话教程）」**（platform.deepseek.com → API Keys → 创建 → 复制 sk-）。
+  - 新增 `extractEventsFromContent` 解析模型 content；`visionEventToConfirm` 对无时区时间按 `+08:00` 处理。
+  - 提示词抽到共享文件 **`prompts.js`**（UMD：前端 `window.DEEPSEEK_PROMPTS` / 后端 `require`），`server.js` 改为 require，避免两处不同步。
+  - `server.js` 保留为**可选后端**，前端默认不再调用 `/api/vision-extract`。
+  - README/memory-bank 已同步修正（去掉「Tesseract.js / 无后端」等过时描述）。
+- 无 Key / 401 / 402 / 429 / 网络错误时均有明确提示文案。
+
 ## 验证记录
 - `node --check server.js` ✅；抽取 `<script>` 后 `node --check` ✅。
 - 解析单测（Node）：课表文本正确解析、体育 `vs/对/-` 正确解析、`parseCompactDT` 三种格式均返回有效 Date、`icsStamp` 均输出单个 Z ✅。
 - 冒烟测试：`PORT=3999/3998 node server.js` 正常启动、页面含新标记、接口对缺图返回 400 ✅。
 
 ## 最近一次操作人/时间
-- 2026-09-03 23:57（ics_editor.html 最后修改），server.js 9660B。
+- 2026-09-04：纯前端直连 DeepSeek（方案 A）+ 页面 API Key 教程 + `prompts.js` 共享提示词；文件：ics_editor.html、prompts.js（新增）、server.js、README.md、memory-bank/*。

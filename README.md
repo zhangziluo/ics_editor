@@ -9,7 +9,7 @@
 ## ✨ 核心特性
 
 - 🔍 **ICS 垂直搜索**：导航页搜索框默认拼接 `filetype:ics`，一键搜全网日历文件。中文圈首个 ICS 专用搜索入口。
-- 📸 **截图 OCR 生成**：上传赛程/课表截图 → Tesseract.js 识别 → AI 提取事件 → 一键导出 ICS。
+- 📸 **截图 AI 识别**：上传赛程/课表截图 → 浏览器直连 DeepSeek Vision 提取事件 → 一键导出 ICS（首次用点页面「⚙️ API Key 设置」，粘贴自己申请的 Key；Key 只存本浏览器、图片只发给 DeepSeek）。
 - 📝 **智能文字解析**：粘贴一段文字（如"周一 8 点开会，提前半小时提醒"），自动解析时间、地点、提醒。
 - ⏰ **默认 15 分钟前提醒**：每个事件自动带上 `VALARM`，解决厂商日历"节日/订阅默认不提醒"的痛点。
 - 🌍 **长尾日历覆盖**：体育赛事、课程表、宗教节日、读书计划……任何非标准日历需求。
@@ -35,10 +35,10 @@
 
 ## 🛠️ 技术栈
 
-- 前端：纯 HTML + CSS + JavaScript
-- OCR：Tesseract.js（Apache-2.0）
-- 部署：Cloudflare Pages
-- 无后端、无数据库、无追踪
+- 前端：纯 HTML + CSS + JavaScript，可整站静态托管（Cloudflare Pages / GitHub Pages 均可）
+- AI 识别：DeepSeek Vision（`deepseek-v4-flash-vision-exp`），浏览器直连、用户自备 API Key（页面内有大白话申请教程）
+- 可选后端：`server.js` 本地 Node 代理（浏览器被拦截、或不想在页面填 Key 的团队场景）
+- 无数据库、无追踪
 
 ## 🗺️ 路线图
 
@@ -49,7 +49,7 @@
 
 ## 🙏 致谢
 
-- 文字识别基于 [Tesseract.js](https://github.com/naptha/tesseract.js)
+- AI 图像识别由 [DeepSeek](https://platform.deepseek.com) Vision API 提供，Key 由用户自带、仅存于自己浏览器。
 - 灵感来源：海外同类工具（ICS-Gen、QuickCalAI 等）验证了"截图/文字 → ICS"的思路，本工具在此基础上做了中文界面、垂直搜索入口和默认提醒差异化。
 
 ## 🪧 兼容性说明

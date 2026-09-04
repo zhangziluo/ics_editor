@@ -92,6 +92,25 @@ header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;pa
 .mode-switch button:hover{background:#eef2ff}
 .mode-switch button.active{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-color:transparent;box-shadow:0 3px 8px rgba(102,126,234,.3)}
 
+/* API Key 设置 */
+.key-row{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.btn-key{padding:7px 14px;border:1px solid #a0aec0;background:#edf2f7;color:#4a5568;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.btn-key:hover{background:#e2e8f0}
+.key-state{font-size:12px;font-weight:600}
+.key-panel{margin-top:10px;padding:12px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:10px}
+.key-label{display:block;font-size:13px;font-weight:600;color:#4a5568;margin-bottom:6px}
+.key-input-row{display:flex;gap:8px;flex-wrap:wrap}
+.key-input-row input{flex:1;min-width:220px;padding:9px 12px;border:1px solid #cbd5e0;border-radius:8px;font-size:14px}
+.key-input-row input:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.15)}
+.key-input-row button{padding:9px 16px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-key-save{background:#667eea;color:#fff}.btn-key-save:hover{background:#5a67d8}
+.btn-key-clear{background:#e2e8f0;color:#4a5568}.btn-key-clear:hover{background:#cbd5e0}
+.key-hint{font-size:12px;color:#48bb78;margin-top:6px;min-height:16px}
+.key-guide{margin-top:10px;font-size:13px;line-height:1.7}
+.key-guide summary{cursor:pointer;font-weight:600;color:#5a67d8}
+.key-guide ol{padding-left:20px;margin:8px 0}
+.key-guide p{color:#718096;font-size:12px;margin-top:6px}
+
 /* 粘贴面板 */
 .paste-area{width:100%;min-height:80px;padding:10px;border:2px dashed #cbd5e0;border-radius:8px;font-size:14px;resize:vertical;font-family:inherit}
 .paste-area:focus{border-color:#667eea;outline:none}
@@ -200,6 +219,30 @@ header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;pa
       <video id="camera-preview" autoplay playsinline></video>
       <canvas id="camera-canvas"></canvas>
       <div id="paste-status" style="font-size:12px;margin-top:6px;"></div>
+      <div class="key-row">
+        <button class="btn-key" onclick="toggleKeyPanel()">⚙️ API Key 设置</button>
+        <span class="key-state" id="key-state">未设置（AI 截图识别不可用）</span>
+      </div>
+      <div id="key-panel" class="key-panel" style="display:none;">
+        <label class="key-label">DeepSeek API Key（以 sk- 开头）</label>
+        <div class="key-input-row">
+          <input type="password" id="api-key-input" placeholder="粘贴 sk-...">
+          <button class="btn-key-save" onclick="saveApiKey()">保存</button>
+          <button class="btn-key-clear" onclick="clearApiKey()">清除</button>
+        </div>
+        <div class="key-hint" id="key-hint"></div>
+        <details class="key-guide">
+          <summary>📖 怎么申请 API Key？（大白话教程）</summary>
+          <ol>
+            <li>用浏览器打开 <b>platform.deepseek.com</b>，先注册再登录（手机号或邮箱都行）。</li>
+            <li>登录后，在左侧菜单找到 <b>「API Keys」</b>（也叫「API 密钥」），点进去。</li>
+            <li>点 <b>「创建 API Key」</b>，名字随便填（比如"日历工具"），点创建。</li>
+            <li>马上复制那串 <b>sk- 开头</b> 的密钥——它只完整显示这一次，建议先存到备忘录。</li>
+            <li>回到本工具，把密钥粘贴到上面的输入框，点<b>保存</b>，就可以开始截图识别了。</li>
+          </ol>
+          <p>💡 这个 Key 相当于你的"密码 + 钱包"：它只保存在<b>你自己浏览器里</b>，上传的图片只发给 DeepSeek 识别，不会经过任何人的服务器，别把 Key 发到群里。截图识别按用量计费（很便宜），新账号一般会送一点体验额度，用完再去平台充值。</p>
+        </details>
+      </div>
     </div>
 
     <!-- 编辑表单 -->
@@ -392,6 +435,7 @@ header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;pa
   </div>
 </div>
 
+<script src="prompts.js"></script>
 <script>
 // ==================== 全局状态 ====================
 let events = [];
@@ -745,31 +789,114 @@ function setPasteStatus(kind,msg){
   const color=kind==='ok'?'#48bb78':(kind==='err'?'#e53e3e':'#667eea');
   document.getElementById('paste-status').innerHTML=`<span style="color:${color}">${msg}</span>`;
 }
-// 上传 base64 图片 → 后端 /api/vision-extract（DeepSeek Vision）
+// ==================== API Key 设置（纯前端直连 DeepSeek） ====================
+function getApiKey(){return (localStorage.getItem('deepseek_api_key')||'').trim()}
+function updateKeyState(){
+  const has=!!getApiKey();
+  const st=document.getElementById('key-state');
+  if(st){st.textContent=has?'✅ Key 已设置':'未设置（AI 截图识别不可用）';st.style.color=has?'#48bb78':'#e53e3e'}
+  const hint=document.getElementById('key-hint');
+  if(hint)hint.textContent=has?'✅ Key 已保存到本浏览器（localStorage），不会上传到任何服务器。':'';
+}
+function toggleKeyPanel(){
+  const p=document.getElementById('key-panel');
+  const show=p.style.display==='none';
+  p.style.display=show?'block':'none';
+  if(show){document.getElementById('api-key-input').value=getApiKey();updateKeyState()}
+}
+function saveApiKey(){
+  const v=document.getElementById('api-key-input').value.trim();
+  if(!v){alert('请先粘贴你的 DeepSeek API Key（sk- 开头）');return}
+  if(!/^sk-/.test(v)&&!confirm('这个看起来不像 sk- 开头的 Key，确定要保存吗？'))return;
+  localStorage.setItem('deepseek_api_key',v);
+  updateKeyState();
+  setPasteStatus('ok','✅ API Key 已保存，可以开始截图识别了');
+}
+function clearApiKey(){
+  if(!confirm('确定清除本浏览器里保存的 API Key？'))return;
+  localStorage.removeItem('deepseek_api_key');
+  document.getElementById('api-key-input').value='';
+  updateKeyState();
+  setPasteStatus('loading','API Key 已清除');
+}
+
+// 上传 base64 图片 → DeepSeek Vision（纯前端直连，Key 只在本浏览器 localStorage，无需后端）
 function recognizeImage(dataUri){
+  const key=getApiKey();
+  if(!key){setPasteStatus('err','⚠️ 请先设置 DeepSeek API Key（点「⚙️ API Key 设置」，内含申请教程）');return}
+  if(typeof DEEPSEEK_PROMPTS==='undefined'){setPasteStatus('err','提示词文件 prompts.js 加载失败，请确认它和页面在同一目录');return}
+  const cfg=DEEPSEEK_PROMPTS[recMode]||DEEPSEEK_PROMPTS.general;
   const modeName={general:'通用',sports:'体育赛事',course:'课程表'}[recMode]||'通用';
   setPasteStatus('loading',`🤖 AI 正在识别中（${modeName}模式）...`);
-  fetch('/api/vision-extract',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({image:dataUri, mode:recMode})
+  fetch('https://api.deepseek.com/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({
+      model:'deepseek-v4-flash-vision-exp',
+      max_tokens:2048, // 防止截断
+      response_format:{type:'json_object'},
+      messages:[
+        {role:'system',content:cfg.system},
+        {role:'user',content:[
+          {type:'text',text:cfg.user},
+          {type:'image_url',image_url:{url:dataUri}}
+        ]}
+      ]
+    })
   })
-  .then(r=>r.json())
+  .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
   .then(data=>{
-    if(!data||data.error){setPasteStatus('err','截图识别失败，请尝试手动粘贴文字');return}
-    const list=data.events||(Array.isArray(data)?data:[]);
+    const content=(data&&data.choices&&data.choices[0]&&data.choices[0].message)?data.choices[0].message.content:'';
+    const list=extractEventsFromContent(content);
+    if(!list||!list.length){setPasteStatus('err','未能识别出日程，请重试或切换识别模式');return}
     pendingConfirms=list.map(ev=>visionEventToConfirm(ev)).filter(Boolean);
     if(pendingConfirms.length===0){setPasteStatus('err','未能识别出日程，请尝试手动粘贴文字或切换识别模式');return}
     setPasteStatus('ok','✅ AI 识别到 '+pendingConfirms.length+' 条日程，请在下方确认');
     showConfirmCards(pendingConfirms);
   })
-  .catch(()=>setPasteStatus('err','截图识别失败，请尝试手动粘贴文字'));
+  .catch(err=>{
+    const code=String((err&&err.message)||err);
+    if(code.indexOf('401')>=0)setPasteStatus('err','❌ API Key 无效，请到「⚙️ API Key 设置」检查或重新申请');
+    else if(code.indexOf('402')>=0)setPasteStatus('err','❌ 账户余额不足，请到 platform.deepseek.com 充值');
+    else if(code.indexOf('429')>=0)setPasteStatus('err','⏳ 请求太频繁，请稍等几秒再试');
+    else if(/fetch|network|networkerror|typeerror/i.test(code))setPasteStatus('err','⚠️ 网络错误：浏览器无法直连 DeepSeek（可能被拦截），可改走本机后端 npm start');
+    else setPasteStatus('err','截图识别失败，请稍后重试（'+code+'）');
+  });
 }
-// 将 AI 返回的赛事(ISO 时间)映射成确认卡片所需结构 {date,start,end,...}
+// 从模型返回的 content 里提取 events 数组（兼容 {"events":[...]} / 裸数组 / markdown 围栏）
+function extractEventsFromContent(content){
+  let text=String(content||'').trim();
+  text=text.replace(/```(?:json)?/gi,'').replace(/```/g,'').trim();
+  const unwrap=raw=>{
+    const p=JSON.parse(raw);
+    if(Array.isArray(p))return p;
+    if(p&&typeof p==='object'){
+      for(const k of Object.keys(p)){if(Array.isArray(p[k]))return p[k]} // {"events":[...]} 包装
+      return [p];
+    }
+    return null;
+  };
+  try{const r=unwrap(text);if(r)return r}catch(e){}
+  for(const re of [/\[[\s\S]*\]/,/\{[\s\S]*\}/]){
+    const m=text.match(re);
+    if(m){try{const r=unwrap(m[0]);if(r)return r}catch(e){}}
+  }
+  return null;
+}
+// 将 AI 返回的赛事(ISO / 北京时间)映射成确认卡片所需结构 {date,start,end,...}
 function visionEventToConfirm(ev){
   try{
-    const start=ev&&ev.start?new Date(ev.start):null;
-    if(!start||isNaN(start.getTime()))return null;
-    const end=ev.end?new Date(ev.end):new Date(start.getTime()+2*3600000);
+    if(!ev||!ev.start)return null;
+    const norm=s=>{
+      s=String(s).trim();
+      if(!/[zZ]$/.test(s)&&!/[+-]\d{2}:?\d{2}$/.test(s))s+='+08:00'; // 无时区则按北京时间
+      return new Date(s);
+    };
+    const start=norm(ev.start);
+    if(isNaN(start.getTime()))return null;
+    let end=null;
+    if(ev.end){end=norm(ev.end);if(isNaN(end.getTime()))end=null}
+    if(!end)end=new Date(start.getTime()+(recMode==='sports'?2*3600000:3600000)); // 兜底时长
     const remind=Math.floor(Number(ev.reminder_minutes_before));
     return {
       title:(ev.title||'').trim()||'未命名日程',
@@ -857,6 +984,7 @@ function parseICS(text){
 // ==================== 初始化 ====================
 initCal();
 applyTemplateFromStorage();
+updateKeyState();
 </script>
 </body>
 </html>
