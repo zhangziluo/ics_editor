@@ -49,5 +49,12 @@
 - 解析单测（Node）：课表文本正确解析、体育 `vs/对/-` 正确解析、`parseCompactDT` 三种格式均返回有效 Date、`icsStamp` 均输出单个 Z ✅。
 - 冒烟测试：`PORT=3999/3998 node server.js` 正常启动、页面含新标记、接口对缺图返回 400 ✅。
 
+### 6. Cloudflare Workers 部署上线（2026-09-04）
+- 部署平台：Cloudflare Workers（静态资源模式），Worker 名 `ics-editor`。
+- 线上地址：`https://ics-editor.zhang409543901.workers.dev/`（已写入 README 标题下 + GitHub 自述）。
+- 关键配置：仓库根新增 `wrangler.jsonc`（`assets.directory:"."`）与 `.assetsignore`（排除 `node_modules/`、`.git/`、`.env`、`*.log`、`.wrangler/`、`wrangler.jsonc`）；`.gitignore` 加 `.wrangler/`。
+- 踩坑记录：曾因把整个仓库（含 node_modules 147MB）当静态资源上传而报 "Asset too large"，用 `.assetsignore` 解决。
+- 说明：CI 克隆自 git（无 `.env`），纯前端直连 DeepSeek（用户自带 Key），静态托管即可完整工作。
+
 ## 最近一次操作人/时间
-- 2026-09-04：纯前端直连 DeepSeek（方案 A）+ 页面 API Key 教程 + `prompts.js` 共享提示词；文件：ics_editor.html、prompts.js（新增）、server.js、README.md、memory-bank/*。
+- 2026-09-04：Cloudflare Workers 上线 + README/GitHub 自述加入线上地址（远程提交 b8449cc，本地已 fast-forward 同步）。
