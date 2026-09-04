@@ -1,6 +1,8 @@
 
 # ICS Editor — 截图 / 文字 → 带提醒的 .ics 日历
 
+https://ics-editor.zhang409543901.workers.dev/
+
 > **ICS 不是规划工具，是触发工具。**
 > 让截图和文字，15 秒变成手机日历里响起的提醒。
 
